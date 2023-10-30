@@ -1,0 +1,26 @@
+[package]
+authors = ["Kaushik Chakraborty <git@kaushikc.org>"]
+name = "kiteticker-async"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/kaychaks/kiteticker-async"
+documentation = "https://docs.rs/kiteticker-async/0.1.0/kiteticker-async/"
+description = """
+  Async version of the ticker module of the kiteconnect-rs crate.
+"""
+categories = ["asynchronous", "finance"]
+keywords = ["ticker", "zerodha", "web-sockets", "trading", "real-time"]
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.28.2", features = ["full"] }
+tokio-tungstenite = { version = "0.20.1", features = ["native-tls"] }
+futures-util = { version = "0.3.28", features = ["sink"] }
+tokio-stream = { version = "0.1.14", features = ["full"] }
+url = "2.4.1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }
