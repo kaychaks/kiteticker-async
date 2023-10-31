@@ -265,7 +265,7 @@ impl DepthItem {
 ///
 pub enum TickerMessage {
   /// Quote packets for subscribed tokens
-  Tick(Vec<TickMessage>),
+  Ticks(Vec<TickMessage>),
   /// Error response
   Error(String),
   /// Order postback

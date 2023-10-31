@@ -173,7 +173,6 @@ impl KiteTickerSubscriber {
         .map(|t| (t.clone(), mode.clone().unwrap_or_default())),
     );
     let tks = self.get_subscribed();
-    dbg!(tks.clone());
     self.ticker.subscribe_cmd(tks.as_slice(), None).await?;
     Ok(())
   }
@@ -196,7 +195,6 @@ impl KiteTickerSubscriber {
     instrument_tokens: &[u32],
   ) -> Result<(), String> {
     let tokens = self.get_subscribed_or(instrument_tokens);
-    dbg!(tokens.clone());
     self.ticker.unsubscribe_cmd(tokens.as_slice()).await
   }
 
@@ -218,7 +216,7 @@ impl KiteTickerSubscriber {
       Message::Text(text_message) => self.process_text_message(text_message),
       Message::Binary(ref binary_message) => {
         if binary_message.len() < 2 {
-          return Some(TickerMessage::Tick(vec![]));
+          return Some(TickerMessage::Ticks(vec![]));
         } else {
           self.process_binary(binary_message.as_slice())
         }
@@ -240,7 +238,7 @@ impl KiteTickerSubscriber {
     let num_packets =
       i16::from_be_bytes(binary_message[0..=1].try_into().unwrap()) as usize;
     if num_packets > 0 {
-      Some(TickerMessage::Tick(
+      Some(TickerMessage::Ticks(
         [0..num_packets]
           .into_iter()
           .fold((vec![], 2), |(mut acc, start), _| {
@@ -262,7 +260,6 @@ impl KiteTickerSubscriber {
     &self,
     text_message: String,
   ) -> Option<TickerMessage> {
-    dbg!(text_message.clone());
     serde_json::from_str::<TextMessage>(&text_message)
       .map(|x| x.into())
       .ok()
@@ -285,7 +282,7 @@ mod tests {
     loop {
       match sb.next_message().await {
         Ok(message) => match message {
-          Some(TickerMessage::Tick(xs)) => {
+          Some(TickerMessage::Ticks(xs)) => {
             if xs.len() == 0 {
               continue;
             }
@@ -298,7 +295,6 @@ mod tests {
             break;
           }
           _ => {
-            dbg!(message);
             continue;
           }
         },
@@ -333,7 +329,7 @@ mod tests {
           match n.to_owned() {
             Some(message) => {
               match message {
-                TickerMessage::Tick(xs) => {
+                TickerMessage::Ticks(xs) => {
                   if xs.len() == 0 {
                     if loop_cnt > 5 {
                       break;
@@ -343,7 +339,6 @@ mod tests {
                   }
                   assert_eq!(xs.len(), 1);
                   let tick_message = xs.first().unwrap();
-                  dbg!(tick_message);
                   assert!(tick_message.instrument_token == token);
                   assert_eq!(tick_message.content.mode, mode);
                   if loop_cnt > 5 {
@@ -395,7 +390,7 @@ mod tests {
     loop {
       match sb.next_message().await {
         Ok(message) => match message {
-          Some(TickerMessage::Tick(xs)) => {
+          Some(TickerMessage::Ticks(xs)) => {
             if xs.len() == 0 {
               if loop_cnt > 4 {
                 assert!(true);
@@ -407,7 +402,6 @@ mod tests {
             }
             assert_eq!(xs.len(), 1);
             let tick_message = xs.first().unwrap();
-            dbg!(tick_message);
             assert!(tick_message.instrument_token == token);
             sb.unsubscribe(&[]).await.unwrap();
             loop_cnt += 1;
@@ -417,7 +411,6 @@ mod tests {
             }
           }
           _ => {
-            dbg!(message);
             continue;
           }
         },
