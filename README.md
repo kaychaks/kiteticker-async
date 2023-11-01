@@ -52,7 +52,7 @@ pub async fn main() -> Result<(), String> {
     .await?;
 
   // await quotes
-  if let Ok(Some(msg)) = subscriber.next_message().await? {
+  if let Some(msg) = subscriber.next_message().await? {
     match msg {
       TickerMessage::Tick(ticks) => {
         let tick = ticks.first().unwrap();
