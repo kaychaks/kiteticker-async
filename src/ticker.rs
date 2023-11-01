@@ -6,7 +6,6 @@ use tokio::sync::Mutex;
 use tokio_tungstenite::{
   connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream,
 };
-
 use crate::models::{
   packet_length, Mode, Request, TextMessage, Tick, TickMessage, TickerMessage,
 };
