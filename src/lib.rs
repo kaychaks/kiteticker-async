@@ -51,8 +51,8 @@
 //! ```
 mod models;
 pub use models::{
-  Depth, DepthItem, Exchange, Mode, Request, TextMessage, Tick, TickMessage,
-  TickerMessage, OHLC,
+  Depth, DepthItem, Exchange, Mode, Request, TextMessage, TickMessage,
+  TickerMessage, OHLC, Tick
 };
 
 pub mod ticker;

@@ -21,6 +21,7 @@ tokio-tungstenite = { version = "0.20.1", features = ["native-tls"] }
 futures-util = { version = "0.3.28", features = ["sink"] }
 tokio-stream = { version = "0.1.14", features = ["full"] }
 url = "2.4.1"
+serde_with = "3.4.0"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util"] }
