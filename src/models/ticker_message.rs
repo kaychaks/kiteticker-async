@@ -1,4 +1,4 @@
-use crate::{TextMessage, TickMessage};
+use crate::{Order, TextMessage, TickMessage};
 
 use super::text_message::TextMessageType;
 
@@ -12,7 +12,7 @@ pub enum TickerMessage {
   /// Error response
   Error(String),
   /// Order postback
-  Order(serde_json::Value),
+  OrderPostback(Result<Order, String>),
   /// Messages and alerts from broker
   Message(serde_json::Value),
   /// Websocket closing frame
@@ -23,7 +23,9 @@ impl From<TextMessage> for TickerMessage {
   fn from(value: TextMessage) -> Self {
     let message_type: TextMessageType = value.message_type.into();
     match message_type {
-      TextMessageType::Order => Self::Order(value.data),
+      TextMessageType::Order => Self::OrderPostback(
+        serde_json::from_value(value.data).map_err(|e| e.to_string()),
+      ),
       TextMessageType::Error => Self::Error(value.data.to_string()),
       TextMessageType::Message => Self::Message(value.data),
     }
