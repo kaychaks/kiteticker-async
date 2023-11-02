@@ -1,3 +1,6 @@
+use crate::models::{
+  packet_length, Mode, Request, TextMessage, Tick, TickMessage, TickerMessage,
+};
 use futures_util::{stream::iter, SinkExt, StreamExt};
 use serde_json::json;
 use std::{collections::HashMap, sync::Arc};
@@ -5,9 +8,6 @@ use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio_tungstenite::{
   connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream,
-};
-use crate::models::{
-  packet_length, Mode, Request, TextMessage, Tick, TickMessage, TickerMessage,
 };
 
 #[derive(Debug, Clone)]
@@ -199,7 +199,9 @@ impl KiteTickerSubscriber {
 
   /// Get the next message from the server, waiting if necessary.
   /// If the result is None then server is terminated
-  pub async fn next_message(&mut self) -> Result<Option<TickerMessage>, String> {
+  pub async fn next_message(
+    &mut self,
+  ) -> Result<Option<TickerMessage>, String> {
     let mut ws_stream = self.ticker.ws_stream.lock().await;
     match ws_stream.next().await {
       Some(message) => match message {
@@ -263,206 +265,8 @@ impl KiteTickerSubscriber {
       .map(|x| x.into())
       .ok()
   }
-}
 
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use tokio::select;
-
-  async fn check<F>(
-    mode: Mode,
-    token: u32,
-    sb: &mut KiteTickerSubscriber,
-    assertions: Option<F>,
-  ) where
-    F: Fn(Vec<TickMessage>) -> (),
-  {
-    loop {
-      match sb.next_message().await {
-        Ok(message) => match message {
-          Some(TickerMessage::Ticks(xs)) => {
-            if xs.len() == 0 {
-              continue;
-            }
-            assertions.map(|f| f(xs.clone())).or_else(|| {
-              let tick_message = xs.first().unwrap();
-              assert!(tick_message.instrument_token == token);
-              assert_eq!(tick_message.content.mode, mode);
-              Some(())
-            });
-            break;
-          }
-          _ => {
-            continue;
-          }
-        },
-        _ => {
-          assert!(false);
-          break;
-        }
-      }
-    }
-  }
-
-  #[tokio::test]
-  async fn test_ticker() {
-    let api_key = std::env::var("KITE_API_KEY").unwrap();
-    let access_token = std::env::var("KITE_ACCESS_TOKEN").unwrap();
-    let ticker = KiteTickerAsync::connect(&api_key, &access_token).await;
-
-    assert_eq!(ticker.is_ok(), true);
-
-    let ticker = ticker.unwrap();
-    let token = 94977; // bata
-    let mode = Mode::Full;
-    let sb = ticker.subscribe(&[token], Some(mode.clone())).await;
-    assert_eq!(sb.is_ok(), true);
-    let mut sb = sb.unwrap();
-    assert_eq!(sb.subscribed_tokens.len(), 1);
-    let mut loop_cnt = 0;
-    loop {
-      loop_cnt += 1;
-      select! {
-        Ok(n) = sb.next_message() => {
-          match n.to_owned() {
-            Some(message) => {
-              match message {
-                TickerMessage::Ticks(xs) => {
-                  if xs.len() == 0 {
-                    if loop_cnt > 5 {
-                      break;
-                    }else {
-                      continue;
-                    }
-                  }
-                  assert_eq!(xs.len(), 1);
-                  let tick_message = xs.first().unwrap();
-                  assert!(tick_message.instrument_token == token);
-                  assert_eq!(tick_message.content.mode, mode);
-                  if loop_cnt > 5 {
-                    break;
-                  }
-                },
-                _ => {
-                  if loop_cnt > 5 {
-                    break;
-                  }
-                }
-              }
-            },
-            _ => {
-              if loop_cnt > 5 {
-                assert!(false);
-                break;
-              }
-            }
-          }
-        },
-        else => {
-          assert!(false);
-          break;
-        }
-      }
-    }
-
-    sb.ticker.close().await.unwrap();
-  }
-
-  #[tokio::test]
-  async fn test_unsubscribe() {
-    // create a ticker
-    let api_key = std::env::var("KITE_API_KEY").unwrap();
-    let access_token = std::env::var("KITE_ACCESS_TOKEN").unwrap();
-    let ticker = KiteTickerAsync::connect(&api_key, &access_token).await;
-
-    let ticker = ticker.unwrap();
-    let token = 94977; // bata
-    let mode = Mode::Full;
-    let mut sb = ticker
-      .subscribe(&[token], Some(mode.clone()))
-      .await
-      .unwrap();
-
-    let mut loop_cnt = 0;
-
-    loop {
-      match sb.next_message().await {
-        Ok(message) => match message {
-          Some(TickerMessage::Ticks(xs)) => {
-            if xs.len() == 0 {
-              if loop_cnt > 4 {
-                assert!(true);
-                break;
-              } else {
-                loop_cnt += 1;
-                continue;
-              }
-            }
-            assert_eq!(xs.len(), 1);
-            let tick_message = xs.first().unwrap();
-            assert!(tick_message.instrument_token == token);
-            sb.unsubscribe(&[]).await.unwrap();
-            loop_cnt += 1;
-            if loop_cnt > 5 {
-              assert!(false);
-              break;
-            }
-          }
-          _ => {
-            continue;
-          }
-        },
-        _ => {
-          assert!(false);
-          break;
-        }
-      }
-    }
-    sb.ticker.close().await.unwrap();
-  }
-
-  async fn create_ticker() -> KiteTickerAsync {
-    // create a ticker
-    let api_key = std::env::var("KITE_API_KEY").unwrap();
-    let access_token = std::env::var("KITE_ACCESS_TOKEN").unwrap();
-    let ticker = KiteTickerAsync::connect(&api_key, &access_token).await;
-    ticker.expect("failed to create ticker")
-  }
-
-  #[tokio::test]
-  async fn test_set_mode() {
-    let ticker = create_ticker().await;
-    let token = 94977; // bata
-    let mode = Mode::LTP;
-    let new_mode = Mode::Quote;
-    let mut sb = ticker
-      .subscribe(&[token], Some(mode.clone()))
-      .await
-      .unwrap();
-
-    let f1: Option<Box<dyn Fn(Vec<TickMessage>) -> ()>> = None;
-    let f2: Option<Box<dyn Fn(Vec<TickMessage>) -> ()>> = None;
-    check(mode, token, &mut sb, f1).await;
-    sb.set_mode(&[], new_mode.clone()).await.unwrap();
-    check(new_mode, token, &mut sb, f2).await;
-
-    sb.ticker.close().await.unwrap();
-  }
-
-  #[tokio::test]
-  async fn test_new_sub() {
-    let ticker = create_ticker().await;
-    let token = 94977; // bata
-    let mode = Mode::LTP;
-    let mut sb = ticker
-      .subscribe(&[token], Some(mode.clone()))
-      .await
-      .unwrap();
-    tokio::spawn(async move {
-      sb.subscribe(&[2953217], None).await.unwrap();
-    })
-    .await
-    .unwrap();
+  pub async fn close(&mut self) -> Result<(), String> {
+    self.ticker.close().await
   }
 }
