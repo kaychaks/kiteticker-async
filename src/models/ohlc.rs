@@ -2,7 +2,7 @@ use crate::Exchange;
 
 use super::price;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 ///
 /// OHLC packet structure
 ///
