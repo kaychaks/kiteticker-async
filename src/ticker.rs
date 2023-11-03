@@ -270,3 +270,161 @@ impl KiteTickerSubscriber {
     self.ticker.close().await
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use std::time::Duration;
+
+  use base64::{engine::general_purpose, Engine};
+
+  use crate::{DepthItem, Mode, Tick, OHLC};
+
+  fn load_packet(name: &str) -> Vec<u8> {
+    let str =
+      std::fs::read_to_string(format!("kiteconnect-mocks/{}.packet", name))
+        .map(|s| s.trim().to_string())
+        .expect("could not read file");
+    let ret = general_purpose::STANDARD
+      .decode(str)
+      .expect("could not decode");
+    ret
+  }
+
+  fn setup() -> Vec<(&'static str, Vec<u8>, Tick)> {
+    vec![
+      (
+        "quote packet",
+        load_packet("ticker_quote"),
+        Tick {
+          mode: Mode::Quote,
+          exchange: crate::Exchange::NSE,
+          instrument_token: 408065,
+          is_tradable: true,
+          is_index: false,
+          last_traded_timestamp: None,
+          exchange_timestamp: None,
+          last_price: Some(1573.15),
+          avg_traded_price: Some(1570.33),
+          last_traded_qty: Some(1),
+          total_buy_qty: Some(256511),
+          total_sell_qty: Some(360503),
+          volume_traded: Some(1175986),
+          ohlc: Some(OHLC {
+            open: 1569.15,
+            high: 1575.0,
+            low: 1561.05,
+            close: 1567.8,
+          }),
+          oi_day_high: None,
+          oi_day_low: None,
+          oi: None,
+          net_change: None,
+          depth: None,
+        },
+      ),
+      (
+        "full packet",
+        load_packet("ticker_full"),
+        Tick {
+          mode: Mode::Full,
+          exchange: crate::Exchange::NSE,
+          instrument_token: 408065,
+          is_tradable: true,
+          is_index: false,
+          last_traded_timestamp: Some(Duration::from_secs(
+            chrono::DateTime::parse_from_rfc3339("2021-07-05T10:41:27+05:30")
+              .unwrap()
+              .timestamp() as u64,
+          )),
+          exchange_timestamp: Some(Duration::from_secs(
+            chrono::DateTime::parse_from_rfc3339("2021-07-05T10:41:27+05:30")
+              .unwrap()
+              .timestamp() as u64,
+          )),
+          last_price: Some(1573.7),
+          avg_traded_price: Some(1570.37),
+          last_traded_qty: Some(7),
+          total_buy_qty: Some(256443),
+          total_sell_qty: Some(363009),
+          volume_traded: Some(1192471),
+          ohlc: Some(OHLC {
+            open: 1569.15,
+            high: 1575.0,
+            low: 1561.05,
+            close: 1567.8,
+          }),
+          oi_day_high: Some(0),
+          oi_day_low: Some(0),
+          oi: Some(0),
+          net_change: Some(5.900000000000091),
+          depth: Some(crate::Depth {
+            buy: [
+              DepthItem {
+                qty: 5,
+                price: 1573.4,
+                orders: 1,
+              },
+              DepthItem {
+                qty: 140,
+                price: 1573.0,
+                orders: 2,
+              },
+              DepthItem {
+                qty: 2,
+                price: 1572.95,
+                orders: 1,
+              },
+              DepthItem {
+                qty: 219,
+                price: 1572.9,
+                orders: 7,
+              },
+              DepthItem {
+                qty: 50,
+                price: 1572.85,
+                orders: 1,
+              },
+            ],
+            sell: [
+              DepthItem {
+                qty: 172,
+                price: 1573.7,
+                orders: 3,
+              },
+              DepthItem {
+                qty: 44,
+                price: 1573.75,
+                orders: 3,
+              },
+              DepthItem {
+                qty: 302,
+                price: 1573.85,
+                orders: 3,
+              },
+              DepthItem {
+                qty: 141,
+                price: 1573.9,
+                orders: 2,
+              },
+              DepthItem {
+                qty: 724,
+                price: 1573.95,
+                orders: 5,
+              },
+            ],
+          }),
+        },
+      ),
+    ]
+  }
+
+  #[test]
+  fn test_quotes() {
+    let data = setup();
+    for (name, packet, expected) in data {
+      let tick = Tick::try_from(packet.as_slice());
+      assert_eq!(tick.is_err(), false);
+      assert_eq!(tick.unwrap(), expected, "Testing {}", name);
+    }
+  }
+}

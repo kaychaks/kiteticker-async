@@ -25,3 +25,5 @@ serde_with = "3.4.0"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util"] }
+chrono = { version = "0.4.31", features = ["serde"] }
+base64 = "0.21.5"

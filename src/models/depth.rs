@@ -2,7 +2,7 @@ use crate::Exchange;
 
 use super::{value, price, value_short};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 ///
 /// Market depth packet structure
 ///
@@ -36,7 +36,7 @@ impl Depth {
   }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 ///
 /// Structure for each market depth entry
 ///

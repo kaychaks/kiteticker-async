@@ -4,7 +4,7 @@ use crate::{Depth, Exchange, Mode, OHLC};
 
 use super::{price, value};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 ///
 /// Quote packet structure
 ///
