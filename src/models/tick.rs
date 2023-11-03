@@ -1,8 +1,8 @@
-use std::{time::Duration, ops::Div};
+use std::time::Duration;
 
-use crate::{Mode, Exchange, OHLC, Depth};
+use crate::{Depth, Exchange, Mode, OHLC};
 
-use super::{value, price};
+use super::{price, value};
 
 #[derive(Debug, Clone, Default)]
 ///
@@ -50,7 +50,8 @@ impl Tick {
           if close_price == 0_f64 {
             return None;
           } else {
-            Some(((last_price - close_price) * 100.0).div(close_price))
+            // Some(((last_price - close_price) * 100.0).div(close_price))
+            Some(last_price - close_price)
           }
         } else {
           None
@@ -100,8 +101,6 @@ impl From<&[u8]> for Tick {
           t.total_sell_qty = value(&bs[16..20]);
           // 28 - 44 bytes : ohlc
           t.ohlc = OHLC::from(&bs[20..36], &t.exchange);
-
-          t.set_change();
         }
       }
     };
@@ -117,6 +116,8 @@ impl From<&[u8]> for Tick {
       } else {
         if let Some(bs) = i.get(44..184) {
           t.mode = Mode::Full;
+          t.set_change();
+          
           // 44 - 48 bytes : last traded timestamp
           t.last_traded_timestamp =
             value(&bs[0..4]).map(|x| Duration::from_secs(x.into()));
