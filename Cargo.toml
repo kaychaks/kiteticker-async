@@ -12,6 +12,7 @@ description = """
 """
 categories = ["asynchronous", "finance"]
 keywords = ["ticker", "zerodha", "web-sockets", "trading", "real-time"]
+exclude = ["kiteconnect-mocks/*", "examples/*", "tests/*"]
 
 [dependencies]
 serde_json = "1.0"
