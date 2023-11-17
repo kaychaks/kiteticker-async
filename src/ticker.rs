@@ -240,7 +240,7 @@ impl KiteTickerSubscriber {
       i16::from_be_bytes(binary_message[0..=1].try_into().unwrap()) as usize;
     if num_packets > 0 {
       Some(TickerMessage::Ticks(
-        [0..num_packets]
+        (0..num_packets)
           .into_iter()
           .fold((vec![], 2), |(mut acc, start), _| {
             // start - start + 2 : length of the packet
