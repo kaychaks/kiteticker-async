@@ -30,7 +30,7 @@ Add kiteticker-async crate as a dependency in Cargo.toml
 
 ```
 [dependencies]
-kiteticker-async = "0.1.0"
+kiteticker-async = "0.1.1"
 ```
 
 ## Example
