@@ -194,7 +194,13 @@ impl KiteTickerSubscriber {
     instrument_tokens: &[u32],
   ) -> Result<(), String> {
     let tokens = self.get_subscribed_or(instrument_tokens);
-    self.ticker.unsubscribe_cmd(tokens.as_slice()).await
+    match self.ticker.unsubscribe_cmd(tokens.as_slice()).await{
+      Ok(_) => {
+        self.subscribed_tokens.retain(|k, _| !tokens.contains(k));
+        Ok(())
+      },
+      Err(e) => Err(e)
+    }
   }
 
   /// Get the next message from the server, waiting if necessary.

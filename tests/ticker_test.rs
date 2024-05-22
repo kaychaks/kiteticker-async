@@ -166,3 +166,62 @@ async fn test_new_sub() {
   .await
   .unwrap();
 }
+
+
+#[tokio::test]
+async fn test_removal_from_subscribed() {
+  // create a ticker
+  let api_key = std::env::var("KITE_API_KEY").unwrap();
+  let access_token = std::env::var("KITE_ACCESS_TOKEN").unwrap();
+  let ticker = KiteTickerAsync::connect(&api_key, &access_token).await;
+
+  let ticker = ticker.unwrap();
+  let token = [94977,256265,260105]; // bata,NIFTY 50
+  let mode = Mode::Full;
+  let mut sb = ticker
+    .subscribe(&token, Some(mode.clone()))
+    .await
+    .unwrap();
+
+  let mut loop_cnt = 0;
+
+  loop {
+    match sb.next_message().await {
+      Ok(message) => match message {
+        Some(TickerMessage::Ticks(xs)) => {
+          if xs.len() == 0 {
+            if loop_cnt > 4 {
+              assert!(true);
+              break;
+            } else {
+              loop_cnt += 1;
+              continue;
+            }
+          }
+          assert_eq!(xs.len(), 1);
+          let subscribed = sb.get_subscribed();
+          assert_eq!(subscribed, token);
+          sb.unsubscribe(&[260105]).await.unwrap();
+          let subscribed = sb.get_subscribed();
+          assert_eq!(subscribed, [94977,256265]);
+          sb.unsubscribe(&[]).await.unwrap();
+          let subscribed = sb.get_subscribed();
+          assert_eq!(subscribed, vec![0; 0]);
+          loop_cnt += 1;
+          if loop_cnt > 5 {
+            assert!(false);
+            break;
+          }
+        }
+        _ => {
+          continue;
+        }
+      },
+      _ => {
+        assert!(false);
+        break;
+      }
+    }
+  }
+  sb.close().await.unwrap();
+}
